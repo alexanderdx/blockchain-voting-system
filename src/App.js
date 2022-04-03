@@ -1,25 +1,39 @@
-import logo from './logo.svg';
-import './App.css';
+import { useEffect, useState } from "react";
+import "./App.css";
+
+import Web3 from "web3";
+
+import ABI from "./ABI";
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+  const [state, setState] = useState({
+    user: null,
+    contract: null,
+  });
+
+  async function setup() {
+    const web3 = new Web3(Web3.givenProvider || "http://localhost:7545");
+    const accounts = await web3.eth.requestAccounts();
+    const user = accounts[0];
+
+    const contract = new web3.eth.Contract(
+      ABI.abi,
+      ABI.networks["5777"].address,
+      {
+        from: user,
+      }
+    );
+
+    console.log(contract);
+
+    setState({ user, contract });
+  }
+
+  useEffect(() => {
+    setup();
+  }, []);
+
+  return <div>Your account is {state.user}</div>;
 }
 
 export default App;
