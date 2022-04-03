@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+import { Card, Container, Typography } from "@mui/material";
 import Web3 from "web3";
-
 import ABI from "./ABI";
 
 function App() {
@@ -25,6 +25,7 @@ function App() {
     );
 
     console.log(contract);
+    console.log(accounts);
 
     setState({ user, contract });
   }
@@ -33,7 +34,13 @@ function App() {
     setup();
   }, []);
 
-  return <div>Your account is {state.user}</div>;
+  return (
+    <div>
+      <Container sx={{ textAlign: "center" }}>
+        <Typography>Your account is {state.user}</Typography>
+      </Container>
+    </div>
+  );
 }
 
 export default App;
