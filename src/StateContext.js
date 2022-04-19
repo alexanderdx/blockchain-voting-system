@@ -1,7 +1,7 @@
 import { createContext, useEffect, useState } from "react";
 
 import Web3 from "web3";
-import ABI from "./ABI";
+import { ABI_Platform } from "./ABI";
 
 const web3 = new Web3(Web3.givenProvider || "http://localhost:7545");
 
@@ -16,13 +16,15 @@ const StateContextProvider = ({ children }) => {
     contract: null,
   });
 
+  const [fetching, setFetching] = useState(true);
+
   async function initializeContract() {
     const accounts = await web3.eth.requestAccounts();
     const user = accounts[0];
 
     const contract = new web3.eth.Contract(
-      ABI.abi,
-      ABI.networks["5777"].address,
+      ABI_Platform.abi,
+      ABI_Platform.networks["5777"].address,
       {
         from: user,
       }
@@ -44,4 +46,4 @@ const StateContextProvider = ({ children }) => {
   );
 };
 
-export { StateContext, StateContextProvider };
+export { StateContext, StateContextProvider, web3 };

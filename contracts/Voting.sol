@@ -5,10 +5,23 @@ contract Platform {
     mapping(address => Poll) private polls;
     mapping(address => address[]) private userPolls;
 
-    function getPollById(address id) external view returns (Poll) {
-        require(polls[id].getAddress() != address(0), "Poll does not exist.");
+    event PollCreated(address poll_address, address indexed user_address);
 
-        return polls[id];
+    function getPollById(address id)
+        external
+        view
+        returns (
+            address poll_address,
+            string memory poll_title,
+            uint256 poll_timestamp
+        )
+    {
+        require(polls[id].getAddress() != address(0), "Poll does not exist.");
+        require(polls[id].getAddress() == id, "Poll does not exist.");
+
+        poll_address = polls[id].getAddress();
+        poll_title = polls[id].getTitle();
+        poll_timestamp = polls[id].getTimestamp();
     }
 
     function getMyPolls() external view returns (address[] memory) {
@@ -17,15 +30,23 @@ contract Platform {
         return userPolls[user];
     }
 
-    function createPoll() external {
-        address user = msg.sender;
+    function createPoll(
+        string calldata title,
+        string calldata description,
+        string[] calldata options
+    ) external {
+        require(bytes(title).length > 0, "Poll title cannot be empty.");
 
-        Poll poll = new Poll(user);
+        address user_address = msg.sender;
+
+        Poll poll = new Poll(title, description, options, user_address);
 
         address poll_address = poll.getAddress();
         polls[poll_address] = poll;
 
-        userPolls[user].push(poll_address);
+        userPolls[user_address].push(poll_address);
+
+        emit PollCreated(poll_address, user_address);
     }
 }
 
@@ -38,12 +59,30 @@ contract Poll {
     address public creator;
     address _address;
 
+    string public title;
+    string public description;
+    uint256 public timestamp;
     Option[] public options;
     mapping(address => bool) public hasVoted;
 
-    constructor(address _creator) {
+    constructor(
+        string memory _title,
+        string memory _description,
+        string[] memory _options,
+        address _creator
+    ) {
+        require(bytes(title).length > 0, "Poll title cannot be empty.");
+        require(_options.length >= 2, "Atleast 2 options are required.");
+
+        title = _title;
+        description = _description;
         creator = _creator;
+        timestamp = block.timestamp;
         _address = address(this);
+
+        for (uint256 i = 0; i < _options.length; i++) {
+            options.push(Option({name: _options[i], voteCount: 0}));
+        }
     }
 
     modifier onlyCreator() {
@@ -56,31 +95,64 @@ contract Poll {
         _;
     }
 
-    event LogVote(address indexed voterAddress, string name, uint256 votes);
-    event OptionAdded(address indexed pollAddress, string optionName);
-
-    function addOption(string calldata optionName) public onlyCreator {
-        require(bytes(optionName).length > 0, "Option name cannot be empty.");
-
-        options.push(Option({name: optionName, voteCount: 0}));
-
-        emit OptionAdded(_address, optionName);
-    }
+    event LogVote(
+        address indexed voterAddress,
+        address indexed poll_address,
+        uint256 option,
+        string name,
+        uint256 votes
+    );
 
     function vote(uint256 option) public hasNotVoted {
+        require(option >= 0 && option < options.length, "Invalid option.");
+
         address voter = msg.sender;
 
         hasVoted[voter] = true;
         options[option].voteCount++;
 
-        emit LogVote(voter, options[option].name, options[option].voteCount);
+        emit LogVote(
+            voter,
+            _address,
+            option,
+            options[option].name,
+            options[option].voteCount
+        );
     }
 
-    function getAllOptions() public view returns (Option[] memory) {
-        return options;
+    function getPollData()
+        external
+        view
+        returns (
+            address poll_creator,
+            address poll_address,
+            string memory poll_title,
+            string memory poll_description,
+            uint256 poll_timestamp,
+            Option[] memory poll_options
+        )
+    {
+        poll_creator = creator;
+        poll_address = _address;
+        poll_title = title;
+        poll_description = description;
+        poll_timestamp = timestamp;
+        poll_options = options;
     }
 
     function getAddress() external view returns (address) {
         return _address;
+    }
+
+    function getTitle() external view returns (string memory) {
+        return title;
+    }
+
+    function getTimestamp() external view returns (uint256) {
+        return timestamp;
+    }
+
+    function getAllOptions() public view returns (Option[] memory) {
+        return options;
     }
 }
